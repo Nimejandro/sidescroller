@@ -4,6 +4,30 @@ import os
 import sys
 import math
 
+class saw(object):
+    rotate = [pygame.image.load(os.path.join('images', 'SAW0.PNG')),pygame.image.load(os.path.join('images', 'SAW1.PNG')),pygame.image.load(os.path.join('images', 'SAW2.PNG')),pygame.image.load(os.path.join('images', 'SAW3.PNG'))]
+    def __init__(self,x,y,width,height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.rotateCount = 0
+        self.vel = 1.4
+
+    def draw(self,win):
+        self.hitbox = (self.x + 10, self.y + 5, self.width - 20, self.height - 5)  # Defines the accurate hitbox for our character 
+        pygame.draw.rect(win, (255,0,0), self.hitbox, 2)
+        if self.rotateCount >= 8:  # This is what will allow us to animate the saw
+            self.rotateCount = 0
+        win.blit(pygame.transform.scale(self.rotate[self.rotateCount//2], (64,64)), (self.x,self.y))  # scales our image down to 64x64 before drawing
+        self.rotateCount += 1
+
+class spike(saw):  # We are inheriting from saw
+    img = pygame.image.load(os.path.join('images', 'spike.png'))
+    def draw(self,win):
+        self.hitbox = (self.x + 10, self.y, 28,315)  # defines the hitbox
+        pygame.draw.rect(win, (255,0,0), self.hitbox, 2)
+        win.blit(self.img, (self.x,self.y))
 
 class player():
     # skapar listor med run och jump bilderna. 7 av varje
@@ -103,10 +127,12 @@ def menu(screen):
         pygame.display.update()
 
 
-def redrawWindow(win, bg, bgX, bgX2, runner):
+def redrawWindow(win, bg, bgX, bgX2, runner, danger1, danger2):
     win.blit(bg, (bgX, 0))  # draws our first bg image
     win.blit(bg, (bgX2, 0))  # draws the seconf bg image
-    runner.draw(win) # NEW
+    runner.draw(win)
+    danger1.draw(win)
+    danger2.draw(win)
     pygame.display.update()  # updates the screen
 
 def keyboardInputs(runner):
@@ -136,15 +162,21 @@ def main():
     run = True
     speed = 30  # Ändra hastigheten här
     runner = player(200, 313, 64, 64)
+    danger1 = saw(810,313,64,64)
+    danger2 = spike(900,0,48,310)
+
     while run:
-        redrawWindow(win, bg, bgX, bgX2, runner)
+        redrawWindow(win, bg, bgX, bgX2, runner, danger1, danger2)
+        danger1.x -= 1.4*diff
+        danger2.x -= 1.4*diff
         keyboardInputs(runner)
         bgX -= 1.4*diff  # Bakgrunden rör sig baklänges
         bgX2 -= 1.4*diff
 
         if bgX < bg.get_width() * -1:  # Om bakgrunden har blivit "negativ" har vi nått kanten och då omställer vi
             bgX = bg.get_width()
-        
+            danger1.x = 810
+            danger2.x = 900
         if bgX2 < bg.get_width() * -1:
             bgX2 = bg.get_width()
 
@@ -154,7 +186,7 @@ def main():
                 pygame.quit() 
                 quit()
             
-            if event.type == USEREVENT+1: # Checks if timer goes off
+            if event.type == USEREVENT+1 and speed < 100: # Checks if timer goes off
                 speed += 1 # Increases speed
                 #Spelet ökar hastighet varje 0.5 sekunder. USEREVENT är ett inbyggt allokeringselement i pygame som vi utnyttjar oss av.
         clock.tick(speed)  # Få spelet att simuleras genom clock.tick
