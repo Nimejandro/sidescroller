@@ -3,6 +3,7 @@ from pygame.locals import *
 import os
 import sys
 import math
+import random
 
 class saw(object):
     rotate = [pygame.image.load(os.path.join('images', 'SAW0.PNG')),pygame.image.load(os.path.join('images', 'SAW1.PNG')),pygame.image.load(os.path.join('images', 'SAW2.PNG')),pygame.image.load(os.path.join('images', 'SAW3.PNG'))]
@@ -29,7 +30,7 @@ class spike(saw):  # We are inheriting from saw
         pygame.draw.rect(win, (255,0,0), self.hitbox, 2)
         win.blit(self.img, (self.x,self.y))
 
-class player():
+class player(object):
     # skapar listor med run och jump bilderna. 7 av varje
     run = [pygame.image.load(os.path.join('images', str(x) + '.png')) for x in range(8,10)]
     """run = [pygame.image.load(os.path.join('images', str(x) + '.png'))
@@ -39,9 +40,8 @@ class player():
     print(len(jump), len(run))
     slide = [pygame.image.load(os.path.join('images', 'S1.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(
         os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S3.png')), pygame.image.load(os.path.join('images', 'S4.png')), pygame.image.load(os.path.join('images', 'S5.png'))]
-    jumpList = [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4]
-
+    jumpList = [1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -2, -2, -2, -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -4, -4, -4, -4, -4, -4, -4]
     def __init__(self, x, y, width, height):
         self.x = x
         self.y = y
@@ -56,35 +56,43 @@ class player():
 
     def draw(self, win):
         if self.jumping:
+            self.hitbox = (self.x+ 4,self.y,self.width-24,self.height-10)
             # 1.2 är gravitationskonstant. Vi har 109 delar av vårat hopp (0 till 108), varje del motsvarar ett index i jumpList
             self.y -= self.jumpList[self.jumpCount] * 1.2
             # Vi heltalsdelar med 18 för att vårt hopp är 108 stort med 108//18 = 6. Vi laddar in 7 bilder, så 0 = 1.png, 18 = 2.png.... o.s.v.
             win.blit(self.jump[self.jumpCount//18], (self.x, self.y))
             self.jumpCount += 1
-            if self.jumpCount > 108:
+            if self.jumpCount > 62:
                 self.jumpCount = 0  # Detta är för att nå marknivå så fort vi har nått marknivå
                 self.jumping = False
                 self.runCount = 0
                 self.y = 313
         elif self.sliding or self.slideUp:
-            if self.slideCount < 10: #När karaktären slidear ned
-                self.y += 4
-            elif self.slideCount == 40: #När karaktären träffar väntpunkten och ska resa sig upp
+            if self.slideCount < 17: #När karaktären slidear ned
+                self.hitbox = (self.x+ 4,self.y,self.width-24,self.height-10)
+                self.y +=4
+            elif self.slideCount == 30: #När karaktären träffar väntpunkten och ska resa sig upp
                 self.y -= 19
                 self.sliding = False
                 self.slideUp = True
-            if self.slideCount >= 55: #När karaktären har rest sig upp
+            elif self.slideCount > 20 and self.slideCount < 80: # NEW
+                self.hitbox = (self.x,self.y+3,self.width-8,self.height-35)
+            if self.slideCount >= 88: #När karaktären har rest sig upp
                 self.slideCount = 0
                 self.slideUp = False
                 self.runCount = 0
                 self.y = 313
-            win.blit(self.slide[self.slideCount//5], (self.x, self.y))
+                self.hitbox = (self.x+ 4,self.y,self.width-24,self.height-10)
+            win.blit(self.slide[self.slideCount//8], (self.x, self.y))
             self.slideCount += 2
         else:
             if self.runCount > 19:
                 self.runCount = 0
             win.blit(self.run[self.runCount//10], (self.x,self.y))
             self.runCount += 1
+            self.hitbox = (self.x+ 4,self.y,self.width-24,self.height-13)
+        pygame.draw.rect(win, (255,0,0), self.hitbox, 2)
+        
         """else:
             if self.runCount > 19:
                 self.runCount = 0
@@ -127,13 +135,15 @@ def menu(screen):
         pygame.display.update()
 
 
-def redrawWindow(win, bg, bgX, bgX2, runner, danger1, danger2):
+def redrawWindow(win, bg, bgX, bgX2, runner, obstacles):
     win.blit(bg, (bgX, 0))  # draws our first bg image
     win.blit(bg, (bgX2, 0))  # draws the seconf bg image
     runner.draw(win)
-    danger1.draw(win)
-    danger2.draw(win)
-    pygame.display.update()  # updates the screen
+    # Nytt: Loopar genom alla hinder
+    for obstacle in obstacles:
+        obstacle.draw(win)
+
+    pygame.display.update()
 
 def keyboardInputs(runner):
     keys = pygame.key.get_pressed() #initiera tangentinputs
@@ -154,6 +164,8 @@ def main():
 
     diff = menu(win)
     pygame.time.set_timer(USEREVENT+1, 500//diff) # Sets the timer for 0.5 seconds
+    #Ny
+    pygame.time.set_timer(USEREVENT+2, random.randrange(2000, 3500)) # Will trigger every 2 - 3.5 seconds
     bg = pygame.image.load(os.path.join('images', 'bg.png')).convert()
     bgX = 0
     bgX2 = bg.get_width()
@@ -162,23 +174,25 @@ def main():
     run = True
     speed = 30  # Ändra hastigheten här
     runner = player(200, 313, 64, 64)
-    danger1 = saw(810,313,64,64)
-    danger2 = spike(900,0,48,310)
+    
 
+    obstacles = []
+    # Är över main-loopen
     while run:
-        redrawWindow(win, bg, bgX, bgX2, runner, danger1, danger2)
-        danger1.x -= 1.4*diff
-        danger2.x -= 1.4*diff
+        redrawWindow(win, bg, bgX, bgX2, runner, obstacles)
         keyboardInputs(runner)
         bgX -= 1.4*diff  # Bakgrunden rör sig baklänges
         bgX2 -= 1.4*diff
 
         if bgX < bg.get_width() * -1:  # Om bakgrunden har blivit "negativ" har vi nått kanten och då omställer vi
             bgX = bg.get_width()
-            danger1.x = 810
-            danger2.x = 900
         if bgX2 < bg.get_width() * -1:
             bgX2 = bg.get_width()
+
+        for obstacle in obstacles: 
+            obstacle.x -= 1.4*diff
+            if obstacle.x < obstacle.width * -1: # If our obstacle is off the screen we will remove it
+                obstacles.pop(obstacles.index(obstacle))
 
         for event in pygame.event.get():  
             if event.type == pygame.QUIT: 
@@ -189,6 +203,12 @@ def main():
             if event.type == USEREVENT+1 and speed < 100: # Checks if timer goes off
                 speed += 1 # Increases speed
                 #Spelet ökar hastighet varje 0.5 sekunder. USEREVENT är ett inbyggt allokeringselement i pygame som vi utnyttjar oss av.
+            if event.type == USEREVENT+2:
+                r = random.randrange(0,2)
+                if r == 0:
+                    obstacles.append(saw(810, 310, 64, 64))
+                elif r == 1:
+                    obstacles.append(spike(810, 0, 48, 310))
+            # Går in i: for event in pygame.event.get() loopen
         clock.tick(speed)  # Få spelet att simuleras genom clock.tick
-
 main()
