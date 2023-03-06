@@ -22,6 +22,12 @@ class saw(object):
             self.rotateCount = 0
         win.blit(pygame.transform.scale(self.rotate[self.rotateCount//2], (64,64)), (self.x,self.y))  # scales our image down to 64x64 before drawing
         self.rotateCount += 1
+    
+    def collide(self, rect):
+        if rect[0] + rect[2] > self.hitbox[0] and rect[0] < self.hitbox[0] + self.hitbox[2]:
+            if rect[1] + rect[3] > self.hitbox[1]:
+                return True
+        return False
 
 class spike(saw):  # We are inheriting from saw
     img = pygame.image.load(os.path.join('images', 'spike.png'))
@@ -29,12 +35,15 @@ class spike(saw):  # We are inheriting from saw
         self.hitbox = (self.x + 10, self.y, 28,315)  # defines the hitbox
         pygame.draw.rect(win, (255,0,0), self.hitbox, 2)
         win.blit(self.img, (self.x,self.y))
+    def collide(self, rect):
+        if rect[0] + rect[2] > self.hitbox[0] and rect[0] < self.hitbox[0] + self.hitbox[2]:
+            if rect[1] < self.hitbox[3]:
+                return True
+        return False
 
 class player(object):
-    # skapar listor med run och jump bilderna. 7 av varje
+    # skapar listor med run och jump bilderna
     run = [pygame.image.load(os.path.join('images', str(x) + '.png')) for x in range(8,10)]
-    """run = [pygame.image.load(os.path.join('images', str(x) + '.png'))
-           for x in range(8, 10)]"""
     jump = [pygame.image.load(os.path.join(
         'images', str(x) + '.png')) for x in range(1, 8)]
     print(len(jump), len(run))
@@ -42,6 +51,8 @@ class player(object):
         os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S3.png')), pygame.image.load(os.path.join('images', 'S4.png')), pygame.image.load(os.path.join('images', 'S5.png'))]
     jumpList = [1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -2, -2, -2, -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -4, -4, -4, -4, -4, -4, -4]
+    fall = pygame.image.load(os.path.join('images','0.png'))
+
     def __init__(self, x, y, width, height):
         self.x = x
         self.y = y
@@ -53,12 +64,15 @@ class player(object):
         self.jumpCount = 0
         self.runCount = 0
         self.slideUp = False
+        self.falling = False
 
     def draw(self, win):
+        if self.falling:
+            win.blit(self.fall, (self.x, self.y + 30))
         if self.jumping:
             self.hitbox = (self.x+ 4,self.y,self.width-24,self.height-10)
             # 1.2 är gravitationskonstant. Vi har 109 delar av vårat hopp (0 till 108), varje del motsvarar ett index i jumpList
-            self.y -= self.jumpList[self.jumpCount] * 1.2
+            self.y -= self.jumpList[self.jumpCount] * 1.
             # Vi heltalsdelar med 18 för att vårt hopp är 108 stort med 108//18 = 6. Vi laddar in 7 bilder, så 0 = 1.png, 18 = 2.png.... o.s.v.
             win.blit(self.jump[self.jumpCount//18], (self.x, self.y))
             self.jumpCount += 1
@@ -156,6 +170,20 @@ def keyboardInputs(runner):
         if not (runner.sliding):
             runner.sliding = True
 
+def endScreen(runner):                 
+    
+    run = True
+    while run:
+        pygame.time.delay(100)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+                pygame.quit()
+            if event.type == pygame.MOUSEBUTTONDOWN: #Musklick = starta om
+                run = False
+                main()
+        
+
 def main():
     W, H = 800, 447
     pygame.init()
@@ -178,6 +206,8 @@ def main():
 
     obstacles = []
     # Är över main-loopen
+    fallSpeed = 0 #Är till för att kolla hastigheten av dödanimationen
+    pause = 0 #När denna har nått ett visst värde pausas spelet
     while run:
         redrawWindow(win, bg, bgX, bgX2, runner, obstacles)
         keyboardInputs(runner)
@@ -188,10 +218,18 @@ def main():
             bgX = bg.get_width()
         if bgX2 < bg.get_width() * -1:
             bgX2 = bg.get_width()
-
-        for obstacle in obstacles: 
+        if pause > 0: # Kollar om vi har förlorat, ökar pause variabeln
+            pause += 1
+        if pause > fallSpeed * 2:
+            endScreen(runner)
+        for obstacle in obstacles:
+            if obstacle.collide(runner.hitbox):
+                runner.falling = True
+                if pause == 0: # Kollar om vi redan har förlorat eller inte
+                    fallSpeed = speed 
+                    pause = 1
             obstacle.x -= 1.4*diff
-            if obstacle.x < obstacle.width * -1: # If our obstacle is off the screen we will remove it
+            if obstacle.x < obstacle.width * -1: # Om hindret är utanför skärmen tar vi bort den
                 obstacles.pop(obstacles.index(obstacle))
 
         for event in pygame.event.get():  
