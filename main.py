@@ -49,8 +49,7 @@ class player(object):
     print(len(jump), len(run))
     slide = [pygame.image.load(os.path.join('images', 'S1.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(
         os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S2.png')), pygame.image.load(os.path.join('images', 'S3.png')), pygame.image.load(os.path.join('images', 'S4.png')), pygame.image.load(os.path.join('images', 'S5.png'))]
-    jumpList = [1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -2, -2, -2, -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -4, -4, -4, -4, -4, -4, -4]
+    jumpList = [1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-3,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4]
     fall = pygame.image.load(os.path.join('images','0.png'))
 
     def __init__(self, x, y, width, height):
@@ -76,7 +75,7 @@ class player(object):
             # Vi heltalsdelar med 18 för att vårt hopp är 108 stort med 108//18 = 6. Vi laddar in 7 bilder, så 0 = 1.png, 18 = 2.png.... o.s.v.
             win.blit(self.jump[self.jumpCount//18], (self.x, self.y))
             self.jumpCount += 1
-            if self.jumpCount > 62:
+            if self.jumpCount > 108:
                 self.jumpCount = 0  # Detta är för att nå marknivå så fort vi har nått marknivå
                 self.jumping = False
                 self.runCount = 0
@@ -149,10 +148,13 @@ def menu(screen):
         pygame.display.update()
 
 
-def redrawWindow(win, bg, bgX, bgX2, runner, obstacles):
+def redrawWindow(win, bg, bgX, bgX2, runner, obstacles, score):
     win.blit(bg, (bgX, 0))  # draws our first bg image
     win.blit(bg, (bgX2, 0))  # draws the seconf bg image
     runner.draw(win)
+    largeFont = pygame.font.SysFont('comicsans', 30)
+    text = largeFont.render('Score: ' + str(score), 1, (255,255,255))
+    win.blit(text, (600, 10))
     # Nytt: Loopar genom alla hinder
     for obstacle in obstacles:
         obstacle.draw(win)
@@ -170,7 +172,7 @@ def keyboardInputs(runner):
         if not (runner.sliding):
             runner.sliding = True
 
-def endScreen(runner):                 
+def endScreen(runner, score, win, bg, W):                 
     
     run = True
     while run:
@@ -182,7 +184,30 @@ def endScreen(runner):
             if event.type == pygame.MOUSEBUTTONDOWN: #Musklick = starta om
                 run = False
                 main()
-        
+        win.blit(bg, (0,0))
+        largeFont = pygame.font.SysFont('comicsans', 80)
+        lastScore = largeFont.render('Best Score: ' + str(updateFile(score)),1,(255,255,255))
+        currentScore = largeFont.render('Score: '+ str(score),1,(255,255,255))
+        win.blit(lastScore, (W/2 - lastScore.get_width()/2,150))
+        win.blit(currentScore, (W/2 - currentScore.get_width()/2, 240))
+        pygame.display.update()
+    score = 0
+
+def updateFile(score):
+    f = open('scores.txt','r') # Se till att ha skapat en “score.txt” i mappen
+    file = f.readlines()
+    last = int(file[0])
+
+    if last < int(score):
+        print("!!!!")
+        f.close() # stänger filen
+        file = open('scores.txt', 'w') # öppnar upp igen och skriver på den
+        file.write(str(score)) # skriver poängen på filen
+        file.close() # stänger och avslutar
+
+        return score 
+               
+    return last
 
 def main():
     W, H = 800, 447
@@ -203,17 +228,16 @@ def main():
     speed = 30  # Ändra hastigheten här
     runner = player(200, 313, 64, 64)
     
-
+    score = 0
     obstacles = []
     # Är över main-loopen
     fallSpeed = 0 #Är till för att kolla hastigheten av dödanimationen
     pause = 0 #När denna har nått ett visst värde pausas spelet
     while run:
-        redrawWindow(win, bg, bgX, bgX2, runner, obstacles)
+        redrawWindow(win, bg, bgX, bgX2, runner, obstacles, score)
         keyboardInputs(runner)
         bgX -= 1.4*diff  # Bakgrunden rör sig baklänges
         bgX2 -= 1.4*diff
-
         if bgX < bg.get_width() * -1:  # Om bakgrunden har blivit "negativ" har vi nått kanten och då omställer vi
             bgX = bg.get_width()
         if bgX2 < bg.get_width() * -1:
@@ -221,7 +245,7 @@ def main():
         if pause > 0: # Kollar om vi har förlorat, ökar pause variabeln
             pause += 1
         if pause > fallSpeed * 2:
-            endScreen(runner)
+            endScreen(runner, score, win, bg, W)
         for obstacle in obstacles:
             if obstacle.collide(runner.hitbox):
                 runner.falling = True
@@ -238,10 +262,16 @@ def main():
                 pygame.quit() 
                 quit()
             
+            
+
             if event.type == USEREVENT+1 and speed < 100: # Checks if timer goes off
-                speed += 1 # Increases speed
-                #Spelet ökar hastighet varje 0.5 sekunder. USEREVENT är ett inbyggt allokeringselement i pygame som vi utnyttjar oss av.
+                
+                if speed < 100:
+                    speed += 1 # Increases speed
+                    #Spelet ökar hastighet varje 0.5 sekunder. USEREVENT är ett inbyggt allokeringselement i pygame som vi utnyttjar oss av.
             if event.type == USEREVENT+2:
+                score += 10
+                print(score)
                 r = random.randrange(0,2)
                 if r == 0:
                     obstacles.append(saw(810, 310, 64, 64))
